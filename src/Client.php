@@ -1,4 +1,5 @@
 <?php
+
 /**
  * linkedin-client
  * Client.php
@@ -308,7 +309,7 @@ class Client
      */
     public static function responseToArray($response)
     {
-        return \GuzzleHttp\json_decode(
+        return json_decode(
             $response->getBody()->getContents(),
             true
         );
@@ -551,37 +552,60 @@ class Client
      * @return array
      * @throws Exception
      */
-    public function upload($path)
+    public function upload($path, $linkedinId)
     {
-        $headers = $this->getApiHeaders();
-        unset($headers['Content-Type']);
-        if (!$this->isUsingTokenParam()) {
-            $headers['Authorization'] = 'Bearer ' . $this->accessToken->getToken();
-        }
-        $guzzle = new GuzzleClient([
-            'base_uri' => $this->getApiRoot()
+        $curl = curl_init(); //CURL version: 7.29, PHP version: 7.4.26
+
+        $imageData = array(
+            'registerUploadRequest' =>
+            array(
+                'recipes' =>
+                array(
+                    0 => 'urn:li:digitalmediaRecipe:feedshare-image',
+                ),
+                'owner' => 'urn:li:organization:' . $linkedinId,
+                'serviceRelationships' =>
+                array(
+                    0 =>
+                    array(
+                        'relationshipType' => 'OWNER',
+                        'identifier' => 'urn:li:userGeneratedContent',
+                    ),
+                ),
+            ),
+        );
+
+        $image_request = json_encode($imageData);
+
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.linkedin.com/v2/assets?action=registerUpload',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_TIMEOUT => 300,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $image_request,
+            CURLOPT_HTTPHEADER => array(
+                'content-type: application/json', "Accept: application/json",
+                "Authorization: Bearer " . $this->accessToken->getToken()
+            )
+        ));
+
+        $response = json_decode(curl_exec($curl), true);
+
+        $media = $response['value']['asset'];
+
+        $client = new GuzzleClient();
+        $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
+            'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
+            'body' => fopen($path, 'r'),
+            'verify' => true
         ]);
-        $fileinfo = pathinfo($path);
-        $filename = preg_replace('/\W+/', '_', $fileinfo['filename']);
-        if (isset($fileinfo['extension'])) {
-            $filename .= '.' . $fileinfo['extension'];
-        }
-        $options = [
-            'multipart' => [
-                [
-                    'name' => 'source',
-                    'filename' => $filename,
-                    'contents' => fopen($path, 'r')
-                ]
-            ],
-            'headers' => $headers,
-        ];
-        try {
-            $response = $guzzle->request(Method::POST, 'media/upload', $options);
-        } catch (RequestException $requestException) {
-            throw Exception::fromRequestException($requestException);
-        }
-        return self::responseToArray($response);
+
+        return $media;
     }
 
     /**
@@ -593,7 +617,7 @@ class Client
     {
         $options = [];
         if ($method === Method::POST) {
-            $options['body'] = \GuzzleHttp\json_encode($params);
+            $options['body'] = json_encode($params);
         }
         return $options;
     }
