@@ -630,9 +630,6 @@ class Client
                         "relationshipType" => "OWNER"
                     ]
                 ],
-                "supportedUploadMechanism" => [
-         "SYNCHRONOUS_UPLOAD"
-      ]
             ]
         );
 
