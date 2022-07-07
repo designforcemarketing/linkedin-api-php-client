@@ -629,7 +629,10 @@ class Client
                         "identifier" => "urn:li:userGeneratedContent",
                         "relationshipType" => "OWNER"
                     ]
-                ]
+                ],
+                "supportedUploadMechanism" => [
+         "SYNCHRONOUS_UPLOAD"
+      ]
             ]
         );
 
@@ -670,6 +673,7 @@ class Client
             $current =  json_decode($test->getBody(),true);
             print($current['status']);
             $finished = $current['status'] == 'COMPLETED';
+            sleep(30);
         } while (!$finished);
 
 
