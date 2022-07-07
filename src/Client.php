@@ -644,6 +644,7 @@ class Client
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_ENCODING => "",
             CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 600,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
             CURLOPT_CUSTOMREQUEST => "POST",
@@ -659,11 +660,13 @@ class Client
         $media = $response['value']['asset'];
 
         $client = new GuzzleClient();
-        $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
+        $img = $client->request('POST',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
             'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
             'body' => fopen($path, 'r'),
             'verify' => true
         ]);
+        
+        print_r($img);
 
         return $media;
     }
