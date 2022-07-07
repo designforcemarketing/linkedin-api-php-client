@@ -660,9 +660,10 @@ class Client
         $media = $response['value']['asset'];
 
         $client = new GuzzleClient();
-        $img = $client->request('POST',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
+        $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
             'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
             'body' => fopen($path, 'r'),
+            'timeout' => 420,
             'verify' => true
         ]);
         
