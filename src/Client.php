@@ -661,21 +661,7 @@ class Client
             'body' => fopen($path, 'r'),
             'verify' => true
         ]);
-
-        $finished = false;
-        do {
-            $test = $client->request('GET', 'https://api.linkedin.com/v2/assets/' . last(explode(':', $media)), [
-                'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
-            ]);
-            $current =  json_decode($test->getBody(),true);
-            print($current['status']);
-            $finished = $current['status'] == 'COMPLETED';
-            sleep(30);
-        } while (!$finished);
-
-
-
-
+        sleep(60);
         return $media;
     }
 
