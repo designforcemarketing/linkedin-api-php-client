@@ -609,6 +609,66 @@ class Client
     }
 
     /**
+     * @param $path
+     * @return array
+     * @throws Exception
+     */
+    public function videoUpload($path, $linkedinId)
+    {
+        $curl = curl_init(); //CURL version: 7.29, PHP version: 7.4.26
+
+        $videoData = array(
+            'registerUploadRequest' =>
+            array(
+                'recipes' =>
+                array(
+                    0 => 'urn:li:digitalmediaRecipe:feedshare-video',
+                ),
+                'owner' => 'urn:li:organization:' . $linkedinId,
+                'serviceRelationships' =>
+                array(
+                    0 =>
+                    array(
+                        'relationshipType' => 'OWNER',
+                        'identifier' => 'urn:li:userGeneratedContent',
+                    ),
+                ),
+            ),
+        );
+
+        $video_request = json_encode($videoData);
+
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.linkedin.com/v2/assets?action=registerUpload',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_POSTFIELDS => $video_request,
+            CURLOPT_HTTPHEADER => array(
+                'content-type: application/json', "Accept: application/json",
+                "Authorization: Bearer " . $this->accessToken->getToken()
+            )
+        ));
+
+        $response = json_decode(curl_exec($curl), true);
+
+        $media = $response['value']['asset'];
+
+        $client = new GuzzleClient();
+        $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
+            'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
+            'body' => fopen($path, 'r'),
+            'verify' => true
+        ]);
+
+        return $media;
+    }
+
+    /**
      * @param array $params
      * @param string $method
      * @return mixed
