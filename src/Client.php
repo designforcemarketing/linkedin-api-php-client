@@ -664,7 +664,7 @@ class Client
 
         $finished = false;
         do {
-            $img = $client->request('GET', 'https://api.linkedin.com/rest/assets/' . last(explode(':', $media)), [
+            $img = $client->request('GET', 'https://api.linkedin.com/v2/rest/assets/' . last(explode(':', $media)), [
                 'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
             ]);
             $current = $img->json();
