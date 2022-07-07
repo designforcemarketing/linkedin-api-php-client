@@ -619,21 +619,18 @@ class Client
 
         $videoData = array(
             'registerUploadRequest' =>
-            array(
-                'recipes' =>
-                array(
-                    0 => 'urn:li:digitalmediaRecipe:feedshare-video',
-                ),
-                'owner' => 'urn:li:organization:' . $linkedinId,
-                'serviceRelationships' =>
-                array(
-                    0 =>
-                    array(
-                        'relationshipType' => 'OWNER',
-                        'identifier' => 'urn:li:userGeneratedContent',
-                    ),
-                ),
-            ),
+            [
+                "owner" => 'urn:li:organization:' . $linkedinId,
+                "recipes" => [
+                    "urn:li:digitalmediaRecipe:feedshare-video"
+                ],
+                "serviceRelationships" => [
+                    [
+                        "identifier" => "urn:li:userGeneratedContent",
+                        "relationshipType" => "OWNER"
+                    ]
+                ]
+            ]
         );
 
         $video_request = json_encode($videoData);
@@ -661,13 +658,22 @@ class Client
 
         $client = new GuzzleClient();
         $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
-            'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
             'body' => fopen($path, 'r'),
-            'timeout' => 420,
             'verify' => true
         ]);
-        
-        print_r($img);
+
+        $finished = false;
+        do {
+            $img = $client->request('GET', 'https://api.linkedin.com/rest/assets/' . last(explode(':', $media)), [
+                'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
+            ]);
+            $current = $img->json();
+            print($current['status']);
+            $finished = $current['status'] == 'COMPLETED';
+        } while (!$finished);
+
+
+
 
         return $media;
     }
