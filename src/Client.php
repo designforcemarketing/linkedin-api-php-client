@@ -658,6 +658,7 @@ class Client
 
         $client = new GuzzleClient();
         $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
+            'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken(), 'Content-Type' => 'application/octet-stream'],
             'body' => fopen($path, 'r'),
             'verify' => true
         ]);
