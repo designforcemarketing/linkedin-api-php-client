@@ -23,6 +23,7 @@ use GuzzleHttp\Exception\RequestException;
 use function GuzzleHttp\Psr7\build_query;
 use GuzzleHttp\Psr7\Uri;
 use LinkedIn\Http\Method;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Class Client
@@ -656,13 +657,8 @@ class Client
 
         $media = $response['value']['asset'];
 
-        $client = new GuzzleClient();
-        $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
-            'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken(), 'Content-Type' => 'application/octet-stream'],
-            'body' => fopen($path, 'r'),
-            'verify' => true
-        ]);
-        sleep(60);
+        Http::withToken($this->accessToken->getToken())->timeout(420)
+            ->withBody(file_get_contents($path), "application/octet-stream")->put($$response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']);
         return $media;
     }
 
