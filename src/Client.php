@@ -658,7 +658,7 @@ class Client
         $media = $response['value']['asset'];
 
         Http::withToken($this->accessToken->getToken())->timeout(420)
-            ->withBody(file_get_contents($path), "application/octet-stream")->put($$response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']);
+            ->withBody(file_get_contents($path), "application/octet-stream")->put($response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl']);
         return $media;
     }
 
