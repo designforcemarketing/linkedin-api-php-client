@@ -19,8 +19,8 @@ namespace LinkedIn;
 
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\Exception\RequestException;
-use function GuzzleHttp\Psr7\build_query;
 use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\Query;
 use LinkedIn\Http\Method;
 use Illuminate\Support\Facades\Http;
 
@@ -508,7 +508,7 @@ class Client
             $scheme,
             $authority,
             $path,
-            build_query($params),
+            Query::build($params),
             $fragment
         );
         return $uri;
@@ -539,7 +539,7 @@ class Client
             'headers' => $headers,
         ]);
         if (!empty($params) && Method::GET === $method) {
-            $endpoint .= '?' . build_query($params);
+            $endpoint .= '?' . Query::build($params);
         }
         try {
             $response = $guzzle->request($method, $endpoint, $options);
