@@ -1,5 +1,4 @@
 <?php
-
 /**
  * linkedin-client
  * Client.php
@@ -37,6 +36,11 @@ class Client
      * Grant type
      */
     const OAUTH2_GRANT_TYPE = 'authorization_code';
+
+    /**
+     * Grant type
+     */
+    const REFRESH_TOKEN_GRANT_TYPE = 'refresh_token';
 
     /**
      * Response type
@@ -284,13 +288,15 @@ class Client
                 ]
             ]);
             try {
-                $response = $guzzle->post($uri, ['form_params' => [
-                    'grant_type' => self::OAUTH2_GRANT_TYPE,
-                    self::OAUTH2_RESPONSE_TYPE => $code,
-                    'redirect_uri' => $this->getRedirectUrl(),
-                    'client_id' => $this->getClientId(),
-                    'client_secret' => $this->getClientSecret(),
-                ]]);
+                $response = $guzzle->post($uri, [
+                    'form_params' => [
+                        'grant_type' => self::OAUTH2_GRANT_TYPE,
+                        self::OAUTH2_RESPONSE_TYPE => $code,
+                        'redirect_uri' => $this->getRedirectUrl(),
+                        'client_id' => $this->getClientId(),
+                        'client_secret' => $this->getClientSecret(),
+                    ]
+                ]);
             } catch (RequestException $exception) {
                 throw Exception::fromRequestException($exception);
             }
@@ -298,6 +304,42 @@ class Client
                 AccessToken::fromResponse($response)
             );
         }
+        return $this->accessToken;
+    }
+
+    /**
+     *
+     * @param AccessToken $token
+     * @return AccessToken
+     */
+    public function refreshAccessToken(AccessToken $token)
+    {
+        $uri = $this->buildUrl('accessToken', []);
+        $guzzle = new GuzzleClient([
+            'headers' => [
+                'Content-Type' => 'application/json',
+                'x-li-format' => 'json',
+                'Connection' => 'Keep-Alive'
+            ]
+        ]);
+
+        try {
+            $response = $guzzle->post($uri, [
+                'form_params' => [
+                    'grant_type' => self::REFRESH_TOKEN_GRANT_TYPE,
+                    'refresh_token' => $token->getRefreshToken(),
+                    'client_id' => $this->getClientId(),
+                    'client_secret' => $this->getClientSecret(),
+                ]
+            ]);
+        } catch (RequestException $exception) {
+            throw Exception::fromRequestException($exception);
+        }
+
+        $this->setAccessToken(
+            AccessToken::fromResponse($response)
+        );
+
         return $this->accessToken;
     }
 
@@ -403,7 +445,8 @@ class Client
      */
     public function getLoginUrl(
         array $scope = [Scope::READ_BASIC_PROFILE, Scope::READ_EMAIL_ADDRESS]
-    ) {
+    )
+    {
         $params = [
             'response_type' => self::OAUTH2_RESPONSE_TYPE,
             'client_id' => $this->getClientId(),
@@ -579,28 +622,32 @@ class Client
         $image_request = json_encode($imageData);
 
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.linkedin.com/v2/assets?action=registerUpload',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_TIMEOUT => 300,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $image_request,
-            CURLOPT_HTTPHEADER => array(
-                'content-type: application/json', "Accept: application/json",
-                "Authorization: Bearer " . $this->accessToken->getToken()
+        curl_setopt_array(
+            $curl,
+            array(
+                CURLOPT_URL => 'https://api.linkedin.com/v2/assets?action=registerUpload',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_TIMEOUT => 300,
+                CURLOPT_CUSTOMREQUEST => "POST",
+                CURLOPT_POSTFIELDS => $image_request,
+                CURLOPT_HTTPHEADER => array(
+                    'content-type: application/json',
+                    "Accept: application/json",
+                    "Authorization: Bearer " . $this->accessToken->getToken()
+                )
             )
-        ));
+        );
 
         $response = json_decode(curl_exec($curl), true);
 
         $media = $response['value']['asset'];
 
         $client = new GuzzleClient();
-        $img = $client->request('PUT',  $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
+        $img = $client->request('PUT', $response['value']['uploadMechanism']['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest']['uploadUrl'], [
             'headers' => ['Authorization' => 'Bearer ' . $this->accessToken->getToken()],
             'body' => fopen($path, 'r'),
             'verify' => true
@@ -637,21 +684,25 @@ class Client
         $video_request = json_encode($videoData);
 
 
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://api.linkedin.com/v2/assets?action=registerUpload',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => "",
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 600,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => "POST",
-            CURLOPT_POSTFIELDS => $video_request,
-            CURLOPT_HTTPHEADER => array(
-                'content-type: application/json', "Accept: application/json",
-                "Authorization: Bearer " . $this->accessToken->getToken()
+        curl_setopt_array(
+            $curl,
+            array(
+                CURLOPT_URL => 'https://api.linkedin.com/v2/assets?action=registerUpload',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => "",
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 600,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "POST",
+                CURLOPT_POSTFIELDS => $video_request,
+                CURLOPT_HTTPHEADER => array(
+                    'content-type: application/json',
+                    "Accept: application/json",
+                    "Authorization: Bearer " . $this->accessToken->getToken()
+                )
             )
-        ));
+        );
 
         $response = json_decode(curl_exec($curl), true);
 

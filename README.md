@@ -1,11 +1,8 @@
-LinkedIn API Client with OAuth 2 authorization written on PHP
-============================================================
+# LinkedIn API Client with OAuth 2 authorization written on PHP
+
 [![Build Status](https://travis-ci.org/zoonman/linkedin-api-php-client.svg?branch=master)](https://travis-ci.org/zoonman/linkedin-api-php-client) [![Code Climate](https://codeclimate.com/github/zoonman/linkedin-api-php-client/badges/gpa.svg)](https://codeclimate.com/github/zoonman/linkedin-api-php-client) [![Packagist](https://img.shields.io/packagist/dt/zoonman/linkedin-api-php-client.svg)](https://packagist.org/packages/zoonman/linkedin-api-php-client) [![GitHub license](https://img.shields.io/github/license/zoonman/linkedin-api-php-client.svg)](https://github.com/zoonman/linkedin-api-php-client/blob/master/LICENSE.md)
 
-
-
 See [complete example](examples/) inside [index.php](examples/index.php) to get started.
-
 
 ## Installation
 
@@ -22,22 +19,19 @@ Or add this package as dependency to `composer.json`.
 If you have never used Composer, you should start [here](http://www.phptherightway.com/#composer_and_packagist)
 and install composer.
 
-
 ## Get Started
 
 Before you will get started, play visit to [LinkedIn API Documentation](https://docs.microsoft.com/en-us/linkedin/).
 This will save you a lot of time and prevent some silly questions.
 
-To start working with LinkedIn API, you will need to 
-get application client id and secret. 
+To start working with LinkedIn API, you will need to
+get application client id and secret.
 
-Go to [LinkedIn Developers portal](https://developer.linkedin.com/) 
-and create new application in section My Apps. 
+Go to [LinkedIn Developers portal](https://developer.linkedin.com/)
+and create new application in section My Apps.
 Save ClientId and ClientSecret, you will use them later.
 
-
 #### Bootstrapping autoloader and instantiating a client
-
 
 ```php
 // ... please, add composer autoloader first
@@ -55,7 +49,7 @@ $client = new Client(
 
 #### Getting local redirect URL
 
-To start linking process you have to setup redirect url. 
+To start linking process you have to setup redirect url.
 You can set your own or use current one.
 SDK provides you a `getRedirectUrl()` helper for your convenience:
 
@@ -63,10 +57,10 @@ SDK provides you a `getRedirectUrl()` helper for your convenience:
 $redirectUrl = $client->getRedirectUrl();
 ```
 
-We recommend you to have it stored during the linking session 
+We recommend you to have it stored during the linking session
 because you will need to use it when you will be getting access token.
 
-#### Setting local redirect URL 
+#### Setting local redirect URL
 
 Set a custom redirect url use:
 
@@ -74,7 +68,7 @@ Set a custom redirect url use:
 $client->setRedirectUrl('http://your.domain.tld/path/to/script/');
 ```
 
-#### Getting LinkedIn redirect URL 
+#### Getting LinkedIn redirect URL
 
 In order of performing OAUTH 2.0 flow, you should get LinkedIn login URL.
 During this procedure you have to define scope of requested permissions.
@@ -86,7 +80,7 @@ use LinkedIn\Scope;
 
 // define scope
 $scopes = [
-  Scope::READ_LITE_PROFILE, 
+  Scope::READ_LITE_PROFILE,
   Scope::READ_EMAIL_ADDRESS,
   Scope::SHARE_AS_USER,
   Scope::SHARE_AS_ORGANIZATION,
@@ -96,20 +90,23 @@ $loginUrl = $client->getLoginUrl($scopes); // get url on LinkedIn to start linki
 
 Now you can take user to LinkedIn. You can use link or rely on Location HTTP header.
 
-#### Getting Access Token 
+#### Getting Access Token
 
 To get access token use (don't forget to set redirect url)
 
 ```php
 $accessToken = $client->getAccessToken($_GET['code']);
 ```
-This method returns object of `LinkedIn\AccessToken` class. 
+
+This method returns object of `LinkedIn\AccessToken` class.
 You can store this token in the file like this:
+
 ```php
 file_put_contents('token.json', json_encode($accessToken));
 ```
-This way of storing tokens is not recommended due to security concerns and used for demonstration purpose. 
-Please, ensure that tokens are stored securely. 
+
+This way of storing tokens is not recommended due to security concerns and used for demonstration purpose.
+Please, ensure that tokens are stored securely.
 
 #### Setting Access Token
 
@@ -122,7 +119,7 @@ use LinkedIn\Client;
 
 // instantiate the Linkedin client
 $client = new Client(
-    'LINKEDIN_APP_CLIENT_ID',  
+    'LINKEDIN_APP_CLIENT_ID',
     'LINKEDIN_APP_CLIENT_SECRET'
 );
 
@@ -130,13 +127,34 @@ $client = new Client(
 $tokenString = file_get_contents('token.json');
 $tokenData = json_decode($tokenString, true);
 // instantiate access token object from stored data
-$accessToken = new AccessToken($tokenData['token'], $tokenData['expiresAt']);
+$accessToken = new AccessToken($tokenData['token'], $tokenData['expiresAt'], $tokenData['refreshToken'], $tokenData['refreshTokenExpiresAt']);
 
 // set token for client
-$client->setAccessToken($accessToken);
+if (!$accessToken->isExpired()) {
+    $client->setAccessToken($accessToken);
+} elseif (!$accessToken->isRefreshTokenExpired()) {
+    $accessToken = $client->refreshAccessToken($accessToken);
+
+    file_put_contents(__DIR__ . '/token.json', json_encode($accessToken));
+} else {
+    echo "try to login again\n";
+    $client->setRedirectUrl('https://sciencex.com/Newsman3/extra/oauth/');
+
+    $scopes = [
+        Scope::READ_LITE_PROFILE,
+        Scope::READ_EMAIL_ADDRESS,
+        Scope::SHARE_AS_USER,
+        Scope::SHARE_AS_ORGANIZATION,
+    ];
+
+    $loginUrl = $client->getLoginUrl($scopes);
+
+    echo $loginUrl;
+    die();
+}
 ```
 
-#### Performing API calls 
+#### Performing API calls
 
 All API calls can be called through simple method:
 
@@ -188,12 +206,12 @@ print_r($profile);
 Make sure that image URL is available from the Internet (don't use localhost in the image url).
 
 ```php
-$share = $client->post(                 
-                'ugcPosts',                         
-                [                                   
+$share = $client->post(
+                'ugcPosts',
+                [
                     'author' => 'urn:li:person:' . $profile['id'],
                     'lifecycleState' => 'PUBLISHED',
-                    'specificContent' => [          
+                    'specificContent' => [
                         'com.linkedin.ugc.ShareContent' => [
                             'shareCommentary' => [
                                 'text' => 'Checkout this amazing PHP SDK for LinkedIn!'
@@ -237,12 +255,12 @@ print_r($companyInfo);
 // https://www.linkedin.com/company/devtestco
 $companyId = '2414183';
 
-$share = $client->post(                 
-                'ugcPosts',                         
-                [                                   
+$share = $client->post(
+                'ugcPosts',
+                [
                     'author' => 'urn:li:organization:' . $companyId,
                     'lifecycleState' => 'PUBLISHED',
-                    'specificContent' => [          
+                    'specificContent' => [
                         'com.linkedin.ugc.ShareContent' => [
                             'shareCommentary' => [
                                 'text' => 'Checkout this amazing PHP SDK for LinkedIn!'
@@ -291,12 +309,12 @@ Some private API access there.
 $client->setApiRoot('https://api.linkedin.com/v2/');
 ```
 
-##### ~Image Upload~ 
+##### ~Image Upload~
 
 I assume you have to be LinkedIn partner or something like that.
 
 Try to upload image to LinkedIn. See [Rich Media Shares](https://docs.microsoft.com/en-us/linkedin/marketing/integrations/community-management/shares/rich-media-shares)
-(returns "Not enough permissions to access media resource" for me). 
+(returns "Not enough permissions to access media resource" for me).
 
 ```php
 $filename = '/path/to/image.jpg';
@@ -307,7 +325,7 @@ $mp = $client->upload($filename);
 ## Contributing
 
 Please, open PR with your changes linked to an GitHub issue.
-You code must follow [PSR](http://www.php-fig.org/psr/) standards and have PHPUnit tests. 
+You code must follow [PSR](http://www.php-fig.org/psr/) standards and have PHPUnit tests.
 
 ## License
 
