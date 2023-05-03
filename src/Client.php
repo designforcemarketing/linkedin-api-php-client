@@ -47,6 +47,8 @@ class Client
      */
     const OAUTH2_RESPONSE_TYPE = 'code';
 
+    const API_VERSION = '202308';
+
     /**
      * Client Id
      * @var string
@@ -284,7 +286,8 @@ class Client
                 'headers' => [
                     'Content-Type' => 'application/json',
                     'x-li-format' => 'json',
-                    'Connection' => 'Keep-Alive'
+                    'Connection' => 'Keep-Alive',
+                    'LinkedIn-Version' => self::API_VERSION,
                 ]
             ]);
             try {
@@ -319,7 +322,8 @@ class Client
             'headers' => [
                 'Content-Type' => 'application/json',
                 'x-li-format' => 'json',
-                'Connection' => 'Keep-Alive'
+                'Connection' => 'Keep-Alive',
+                'LinkedIn-Version' => self::API_VERSION,
             ]
         ]);
 
@@ -445,8 +449,7 @@ class Client
      */
     public function getLoginUrl(
         array $scope = [Scope::READ_BASIC_PROFILE, Scope::READ_EMAIL_ADDRESS]
-    )
-    {
+    ) {
         $params = [
             'response_type' => self::OAUTH2_RESPONSE_TYPE,
             'client_id' => $this->getClientId(),
@@ -526,6 +529,9 @@ class Client
      */
     public function api($endpoint, array $params = [], $method = Method::GET)
     {
+        $this->setApiHeaders([
+            'LinkedIn-Version' => self::API_VERSION,
+        ]);
         $headers = $this->getApiHeaders();
         $options = $this->prepareOptions($params, $method);
         Method::isMethodSupported($method);
@@ -637,6 +643,7 @@ class Client
                 CURLOPT_HTTPHEADER => array(
                     'content-type: application/json',
                     "Accept: application/json",
+                    'LinkedIn-Version: ' . self::API_VERSION,
                     "Authorization: Bearer " . $this->accessToken->getToken()
                 )
             )
@@ -663,7 +670,7 @@ class Client
      */
     public function videoUpload($path, $linkedinId)
     {
-        $curl = curl_init(); //CURL version: 7.29, PHP version: 7.4.26
+        $curl = curl_init();
 
         $videoData = array(
             'registerUploadRequest' =>
@@ -699,6 +706,7 @@ class Client
                 CURLOPT_HTTPHEADER => array(
                     'content-type: application/json',
                     "Accept: application/json",
+                    'LinkedIn-Version: ' . self::API_VERSION,
                     "Authorization: Bearer " . $this->accessToken->getToken()
                 )
             )
